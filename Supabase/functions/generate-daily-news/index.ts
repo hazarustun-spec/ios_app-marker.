@@ -128,7 +128,10 @@ Doğrulanabilir haber bulamadıysan:
           {
             type: "web_search_20250305",
             name: "web_search",
-            max_uses: 5,
+            // Anthropic tier-1 rate limit (30k input tokens/min) çoklu search
+            // ile çabuk doluyor. 3 search yeterli (1 broad + 2 fokuslu) ve
+            // tek çağrı başına input token kullanımını ~%40 düşürüyor.
+            max_uses: 3,
           },
         ],
         messages: [{ role: "user", content: prompt }],
