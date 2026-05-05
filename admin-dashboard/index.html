@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>marker. · Haber Yönetim Merkezi</title>
+<style>
+  :root {
+    --bg: #FBFBF6;
+    --card: #FFFFFF;
+    --text: #0E0E0E;
+    --muted: #666;
+    --subtle: #888;
+    --border: #E8E8E0;
+    --mint: #C8DC92;
+    --sage: #C5D5B8;
+    --cream: #EDE7D9;
+    --error: #C0392B;
+    --success: #5a8a3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+  .serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }
+
+  /* === LOGIN === */
+  #login {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-card {
+    background: var(--card);
+    padding: 36px 40px;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    width: 380px;
+  }
+  .login-card h1 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 32px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .login-card p {
+    color: var(--muted);
+    margin-bottom: 22px;
+    font-size: 13px;
+  }
+  .login-card input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .login-card button {
+    width: 100%;
+    padding: 12px;
+    background: var(--text);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .login-card .err {
+    color: var(--error);
+    font-size: 12px;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+
+  /* === DASHBOARD === */
+  #dashboard { display: none; }
+  #dashboard.active { display: block; }
+
+  .topbar {
+    background: var(--text);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+  }
+  .topbar .tag {
+    background: var(--mint);
+    color: var(--text);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-family: ui-monospace, monospace;
+  }
+  .topbar .grow { flex: 1; }
+  .topbar button {
+    background: rgba(255,255,255,0.12);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .topbar button:hover { background: rgba(255,255,255,0.2); }
+
+  /* Date toolbar */
+  .toolbar {
+    background: var(--card);
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .toolbar label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--subtle);
+    font-family: ui-monospace, monospace;
+  }
+  .toolbar input[type=date] {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .toolbar button {
+    padding: 8px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .toolbar button.primary {
+    background: var(--text);
+    color: white;
+    border-color: var(--text);
+  }
+  .toolbar .grow { flex: 1; }
+
+  /* View toggle */
+  .view-toggle {
+    display: inline-flex;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .view-toggle button {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .view-toggle button.active {
+    background: var(--text);
+    color: white;
+  }
+
+  /* Topic grid (single day view) */
+  .grid {
+    padding: 18px 24px;
+  }
+  .topic-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 130px 1fr auto auto auto auto auto;
+    gap: 14px;
+    align-items: center;
+  }
+  .topic-row .topic-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .topic-row .emoji { font-size: 18px; }
+  .topic-row .title-cell {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .topic-row .empty-title {
+    font-style: italic;
+    color: var(--subtle);
+  }
+  .topic-row .meta {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .topic-row .source-count {
+    background: var(--mint);
+    color: var(--text);
+    padding: 3px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+  }
+  .topic-row .source-count.zero {
+    background: #f0f0e8;
+    color: var(--subtle);
+  }
+  .topic-row .icon-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .topic-row .icon-btn:hover { background: var(--bg); }
+  .topic-row .icon-btn.danger { color: var(--error); }
+  .topic-row.empty { opacity: 0.6; border-style: dashed; }
+
+  /* Multi-day view */
+  .multi-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .multi-table th, .multi-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .multi-table th {
+    background: var(--bg);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--subtle);
+    font-family: ui-monospace, monospace;
+    position: sticky;
+    top: 0;
+  }
+  .multi-table td.date-col {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    background: var(--bg);
+  }
+  .multi-table td.cell {
+    cursor: pointer;
+    width: 160px;
+    max-width: 160px;
+    min-width: 140px;
+    transition: background 0.15s;
+    vertical-align: top;
+  }
+  .multi-table td.cell:hover { background: var(--mint); }
+  .multi-table td.cell .clamp {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .multi-table td.cell.empty {
+    color: var(--subtle);
+    font-style: italic;
+    font-size: 11px;
+    text-align: center;
+  }
+  .multi-table {
+    table-layout: fixed;
+  }
+  .multi-table td.date-col {
+    width: 100px;
+  }
+
+  /* Modal editor */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .overlay.active { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .modal-header h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 26px;
+    font-weight: 400;
+    flex: 1;
+  }
+  .modal-header .close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+  }
+  .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .field {
+    margin-bottom: 18px;
+  }
+  .field label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--subtle);
+    font-family: ui-monospace, monospace;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .field textarea {
+    min-height: 60px;
+    line-height: 1.5;
+  }
+  .field textarea.body-area {
+    min-height: 200px;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+  }
+  .field .hint {
+    font-size: 11px;
+    color: var(--subtle);
+    margin-top: 4px;
+  }
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .source-list .source-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .source-list .source-item input { flex: 1; }
+  .source-list .source-item button {
+    padding: 0 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .source-list .add-btn {
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .modal-footer .grow { flex: 1; }
+  .modal-footer button {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .modal-footer button.primary {
+    background: var(--text);
+    color: white;
+    border-color: var(--text);
+  }
+  .modal-footer button.danger {
+    color: var(--error);
+    border-color: var(--error);
+  }
+  .modal-footer .saving {
+    font-size: 12px;
+    color: var(--success);
+    font-family: ui-monospace, monospace;
+  }
+
+  /* Toasts */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+  #toast.error { background: var(--error); }
+  #toast.success { background: var(--success); }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--subtle);
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <h1>marker. Admin</h1>
+    <p>Haber yönetim merkezi. Giriş için admin şifreni gir.</p>
+    <input type="password" id="pwd" placeholder="Admin şifresi" autofocus>
+    <button onclick="login()">Giriş yap</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <h1>marker.</h1>
+    <span class="tag">ADMIN</span>
+    <div class="grow"></div>
+    <button onclick="logout()">Çıkış</button>
+  </div>
+
+  <div class="toolbar">
+    <label>TARİH</label>
+    <input type="date" id="dateInput" onchange="onDateChange()">
+    <button onclick="goToday()">Bugün</button>
+    <button onclick="changeDay(-1)">‹ Önceki</button>
+    <button onclick="changeDay(1)">Sonraki ›</button>
+
+    <div class="grow"></div>
+
+    <div class="view-toggle">
+      <button id="viewDay" class="active" onclick="setView('day')">Tek Gün</button>
+      <button id="viewWeek" onclick="setView('week')">Çoklu Gün (Excel)</button>
+    </div>
+
+    <button class="primary" onclick="openCreate()">+ Manuel Haber</button>
+  </div>
+
+  <div id="content">
+    <div class="loading">Yükleniyor…</div>
+  </div>
+</div>
+
+<!-- MODAL EDITOR -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Haberi Düzenle</h2>
+      <button class="close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row-2">
+        <div class="field">
+          <label>Konu</label>
+          <select id="f_topic_id"></select>
+        </div>
+        <div class="field">
+          <label>Tarih</label>
+          <input type="date" id="f_date">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Başlık (max 85 karakter)</label>
+        <input type="text" id="f_title" maxlength="200">
+      </div>
+
+      <div class="field">
+        <label>Özet (2-3 cümle)</label>
+        <textarea id="f_summary"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Gövde (paragraflar arası boş satır bırak)</label>
+        <textarea id="f_body" class="body-area"></textarea>
+        <div class="hint">Paragraflar \n\n ile ayrılır. Markdown kullanma — düz Türkçe.</div>
+      </div>
+
+      <div class="field">
+        <label>Kaynaklar (URL'ler)</label>
+        <div id="sourceList" class="source-list"></div>
+        <button class="add-btn" onclick="addSource()">+ Kaynak ekle</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="danger" id="deleteBtn" onclick="deleteCurrent()">Sil</button>
+      <span class="saving" id="savingIndicator"></span>
+      <div class="grow"></div>
+      <button onclick="closeModal()">İptal</button>
+      <button class="primary" onclick="saveCurrent()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API = "https://zxseytwpunjajypzrmmr.supabase.co/functions/v1/admin-news";
+
+let TOPICS = [];
+let CURRENT_DATE = new Date().toISOString().slice(0, 10);
+let CURRENT_VIEW = "day";
+let EDITING_ID = null;          // null = creating new
+let WEEK_DATA = {};             // date → topic_id → news
+
+// ============================================================
+// AUTH
+// ============================================================
+function getPwd() { return sessionStorage.getItem("brief-admin-pwd"); }
+function setPwd(p) { sessionStorage.setItem("brief-admin-pwd", p); }
+function clearPwd() { sessionStorage.removeItem("brief-admin-pwd"); }
+
+async function login() {
+  const pwd = document.getElementById("pwd").value.trim();
+  if (!pwd) return;
+  document.getElementById("loginErr").textContent = "";
+  setPwd(pwd);
+  try {
+    const r = await api("topics");
+    if (r.error) {
+      document.getElementById("loginErr").textContent = "Yanlış şifre.";
+      clearPwd();
+      return;
+    }
+    TOPICS = r.topics;
+    showDashboard();
+  } catch (e) {
+    document.getElementById("loginErr").textContent = "Bağlantı hatası.";
+    clearPwd();
+  }
+}
+function logout() {
+  clearPwd();
+  document.getElementById("dashboard").classList.remove("active");
+  document.getElementById("login").style.display = "flex";
+  document.getElementById("pwd").value = "";
+}
+async function showDashboard() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("dashboard").classList.add("active");
+  document.getElementById("dateInput").value = CURRENT_DATE;
+  await loadView();
+}
+
+// ============================================================
+// API
+// ============================================================
+async function api(action, opts = {}) {
+  const url = new URL(API);
+  url.searchParams.set("action", action);
+  if (opts.params) for (const [k, v] of Object.entries(opts.params)) url.searchParams.set(k, v);
+  const init = {
+    method: opts.method ?? "GET",
+    headers: { "x-admin-password": getPwd() ?? "", "Content-Type": "application/json" },
+  };
+  if (opts.body) init.body = JSON.stringify(opts.body);
+  const r = await fetch(url, init);
+  if (r.status === 401) {
+    clearPwd();
+    location.reload();
+    return { error: "Unauthorized" };
+  }
+  return r.json();
+}
+
+// ============================================================
+// VIEWS
+// ============================================================
+function setView(v) {
+  CURRENT_VIEW = v;
+  document.getElementById("viewDay").classList.toggle("active", v === "day");
+  document.getElementById("viewWeek").classList.toggle("active", v === "week");
+  loadView();
+}
+
+async function loadView() {
+  const content = document.getElementById("content");
+  content.innerHTML = '<div class="loading">Yükleniyor…</div>';
+  if (CURRENT_VIEW === "day") await renderDayView();
+  else await renderWeekView();
+}
+
+async function renderDayView() {
+  const r = await api("list", { params: { date: CURRENT_DATE } });
+  const news = r.news ?? [];
+  const newsByTopic = Object.fromEntries(news.map(n => [n.topic_id, n]));
+
+  const html = `<div class="grid">${TOPICS.map(t => {
+    const n = newsByTopic[t.id];
+    if (!n) {
+      return `<div class="topic-row empty">
+        <div class="topic-cell"><span class="emoji">${t.emoji}</span> ${t.name}</div>
+        <div class="title-cell empty-title">— Henüz haber yok —</div>
+        <div class="source-count zero">0 KAYNAK</div>
+        <div class="meta">—</div>
+        <button class="icon-btn" onclick="generateForTopic('${t.id}')" title="Üret">⚡</button>
+        <button class="icon-btn" onclick="openCreateForTopic('${t.id}')" title="Manuel ekle">+</button>
+        <span></span>
+      </div>`;
+    }
+    const created = new Date(n.created_at);
+    const time = created.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    const srcCount = (n.source_urls || []).length;
+    return `<div class="topic-row" onclick="openEdit('${n.id}')">
+      <div class="topic-cell"><span class="emoji">${t.emoji}</span> ${t.name}</div>
+      <div class="title-cell">${escapeHtml(n.title)}</div>
+      <div class="source-count ${srcCount === 0 ? 'zero' : ''}">${srcCount} KAYNAK</div>
+      <div class="meta">${time}</div>
+      <button class="icon-btn" onclick="event.stopPropagation(); generateForTopic('${t.id}')" title="Yeniden üret">⚡</button>
+      <button class="icon-btn" onclick="event.stopPropagation(); openEdit('${n.id}')" title="Düzenle">✎</button>
+      <button class="icon-btn danger" onclick="event.stopPropagation(); confirmDelete('${n.id}', '${escapeHtml(n.title).replace(/'/g, "&#39;")}')" title="Sil">🗑</button>
+    </div>`;
+  }).join("")}</div>`;
+  document.getElementById("content").innerHTML = html;
+}
+
+async function renderWeekView() {
+  const r = await api("days", { params: { limit: 14 } });
+  const days = r.days ?? [];
+  if (days.length === 0) {
+    document.getElementById("content").innerHTML = '<div class="loading">Henüz haber yok.</div>';
+    return;
+  }
+
+  // Fetch news for each day
+  WEEK_DATA = {};
+  for (const d of days) {
+    const r2 = await api("list", { params: { date: d.date } });
+    WEEK_DATA[d.date] = Object.fromEntries((r2.news ?? []).map(n => [n.topic_id, n]));
+  }
+
+  let html = '<div class="grid"><table class="multi-table"><thead><tr><th>TARİH</th>';
+  for (const t of TOPICS) html += `<th>${t.emoji} ${t.name}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (const d of days) {
+    const dt = new Date(d.date);
+    const dayLabel = dt.toLocaleDateString("tr-TR", { weekday: "short", day: "numeric", month: "short" });
+    html += `<tr><td class="date-col">${dayLabel}<br><span style="opacity:0.5">${d.date}</span></td>`;
+    for (const t of TOPICS) {
+      const n = WEEK_DATA[d.date][t.id];
+      if (n) {
+        html += `<td class="cell" onclick="openEdit('${n.id}')"><div class="clamp">${escapeHtml(n.title)}</div></td>`;
+      } else {
+        html += `<td class="cell empty">—</td>`;
+      }
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table></div>";
+  document.getElementById("content").innerHTML = html;
+}
+
+// ============================================================
+// DATE NAVIGATION
+// ============================================================
+function onDateChange() {
+  CURRENT_DATE = document.getElementById("dateInput").value;
+  loadView();
+}
+function goToday() {
+  CURRENT_DATE = new Date().toISOString().slice(0, 10);
+  document.getElementById("dateInput").value = CURRENT_DATE;
+  loadView();
+}
+function changeDay(delta) {
+  const d = new Date(CURRENT_DATE);
+  d.setDate(d.getDate() + delta);
+  CURRENT_DATE = d.toISOString().slice(0, 10);
+  document.getElementById("dateInput").value = CURRENT_DATE;
+  loadView();
+}
+
+// ============================================================
+// MODAL EDITOR
+// ============================================================
+function openCreate() {
+  EDITING_ID = null;
+  document.getElementById("modalTitle").textContent = "Yeni Manuel Haber";
+  document.getElementById("deleteBtn").style.display = "none";
+  populateTopicSelect();
+  document.getElementById("f_date").value = CURRENT_DATE;
+  document.getElementById("f_title").value = "";
+  document.getElementById("f_summary").value = "";
+  document.getElementById("f_body").value = "";
+  renderSourceList([]);
+  document.getElementById("modal").classList.add("active");
+}
+
+function openCreateForTopic(topicId) {
+  openCreate();
+  document.getElementById("f_topic_id").value = topicId;
+}
+
+async function openEdit(newsId) {
+  const r = await api("list", { params: { date: CURRENT_DATE } });
+  // If not in current date, fetch all known dates
+  let news = (r.news ?? []).find(n => n.id === newsId);
+  if (!news) {
+    // search week data
+    for (const date of Object.keys(WEEK_DATA)) {
+      for (const tid of Object.keys(WEEK_DATA[date])) {
+        if (WEEK_DATA[date][tid].id === newsId) news = WEEK_DATA[date][tid];
+      }
+    }
+  }
+  if (!news) { showToast("Haber bulunamadı", "error"); return; }
+
+  EDITING_ID = news.id;
+  document.getElementById("modalTitle").textContent = "Haberi Düzenle";
+  document.getElementById("deleteBtn").style.display = "inline-block";
+  populateTopicSelect();
+  document.getElementById("f_topic_id").value = news.topic_id;
+  document.getElementById("f_date").value = news.date;
+  document.getElementById("f_title").value = news.title;
+  document.getElementById("f_summary").value = news.summary;
+  document.getElementById("f_body").value = news.body;
+  renderSourceList(news.source_urls || []);
+  document.getElementById("modal").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("active");
+  document.getElementById("savingIndicator").textContent = "";
+}
+
+function populateTopicSelect() {
+  const sel = document.getElementById("f_topic_id");
+  sel.innerHTML = TOPICS.map(t => `<option value="${t.id}">${t.emoji} ${t.name}</option>`).join("");
+}
+
+function renderSourceList(urls) {
+  const list = document.getElementById("sourceList");
+  list.innerHTML = urls.map((u, i) => `
+    <div class="source-item">
+      <input type="url" value="${escapeHtml(u)}" placeholder="https://...">
+      <button onclick="this.parentElement.remove()">✕</button>
+    </div>
+  `).join("");
+}
+
+function addSource() {
+  const list = document.getElementById("sourceList");
+  const el = document.createElement("div");
+  el.className = "source-item";
+  el.innerHTML = `
+    <input type="url" placeholder="https://...">
+    <button onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(el);
+  el.querySelector("input").focus();
+}
+
+function getSourceUrls() {
+  return Array.from(document.querySelectorAll("#sourceList input"))
+    .map(i => i.value.trim())
+    .filter(u => u.length > 0);
+}
+
+async function saveCurrent() {
+  const body = {
+    topic_id: document.getElementById("f_topic_id").value,
+    date: document.getElementById("f_date").value,
+    title: document.getElementById("f_title").value.trim(),
+    summary: document.getElementById("f_summary").value.trim(),
+    body: document.getElementById("f_body").value.trim(),
+    source_urls: getSourceUrls(),
+  };
+  if (!body.title || !body.summary || !body.body) {
+    showToast("Başlık, özet ve gövde zorunlu", "error");
+    return;
+  }
+  document.getElementById("savingIndicator").textContent = "Kaydediliyor…";
+  try {
+    if (EDITING_ID) {
+      await api("update", { method: "PATCH", params: { id: EDITING_ID }, body });
+    } else {
+      await api("create", { method: "POST", body });
+    }
+    showToast("Kaydedildi ✓", "success");
+    closeModal();
+    loadView();
+  } catch (e) {
+    showToast("Hata: " + e, "error");
+  }
+}
+
+async function deleteCurrent() {
+  if (!EDITING_ID) return;
+  if (!confirm("Bu haberi silmek istediğine emin misin?")) return;
+  try {
+    await api("delete", { method: "DELETE", params: { id: EDITING_ID } });
+    showToast("Silindi", "success");
+    closeModal();
+    loadView();
+  } catch (e) {
+    showToast("Silme hatası: " + e, "error");
+  }
+}
+
+async function confirmDelete(id, title) {
+  if (!confirm(`Bu haberi silmek istiyor musun?\n\n"${title}"`)) return;
+  try {
+    await api("delete", { method: "DELETE", params: { id } });
+    showToast("Silindi", "success");
+    loadView();
+  } catch (e) {
+    showToast("Silme hatası: " + e, "error");
+  }
+}
+
+async function generateForTopic(topicId) {
+  const t = TOPICS.find(x => x.id === topicId);
+  if (!confirm(`"${t.name}" için ${CURRENT_DATE} tarihli haberi yeniden üretmek istiyor musun?\n\n(Mevcut haber üzerine yazılacak. Web search ile gerçek kaynaklardan derlenecek.)`)) return;
+  showToast("Üretiliyor… (60-180 saniye sürebilir)", "success");
+  try {
+    const r = await api("generate", { method: "POST", params: { topic_id: topicId, date: CURRENT_DATE } });
+    if (r.error) {
+      showToast("Üretim hatası: " + r.error, "error");
+    } else if (r.status === "no_news") {
+      showToast("Haber bulunamadı: " + r.reason, "error");
+    } else {
+      showToast(r.status === "updated" ? "Güncellendi ✓" : "Oluşturuldu ✓", "success");
+      loadView();
+    }
+  } catch (e) {
+    showToast("Hata: " + e, "error");
+  }
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function escapeHtml(s) {
+  if (!s) return "";
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+let toastTimer;
+function showToast(msg, type = "") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show " + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = "", 3500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById("pwd").addEventListener("keydown", e => {
+  if (e.key === "Enter") login();
+});
+
+(async function init() {
+  if (getPwd()) {
+    try {
+      const r = await api("topics");
+      if (r.error) { clearPwd(); return; }
+      TOPICS = r.topics;
+      showDashboard();
+    } catch (e) {
+      clearPwd();
+    }
+  }
+})();
+</script>
+</body>
+</html>

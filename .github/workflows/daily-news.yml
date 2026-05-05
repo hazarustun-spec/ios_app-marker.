@@ -1,0 +1,15 @@
+name: Daily News Generation
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Her gün 06:00 İstanbul (UTC+3)
+  workflow_dispatch:      # Manuel tetikleme için (Actions sekmesinden "Run workflow")
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate daily news for all topics
+        run: bash Supabase/run-daily-news.sh

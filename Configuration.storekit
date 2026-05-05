@@ -1,0 +1,108 @@
+{
+  "identifier" : "BriefAI-LocalConfig",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "tr_TR",
+    "_storefront" : "TUR",
+    "_storeKitErrors" : [
+      { "current" : null, "enabled" : false, "name" : "Load Products" },
+      { "current" : null, "enabled" : false, "name" : "Purchase" },
+      { "current" : null, "enabled" : false, "name" : "Verification" },
+      { "current" : null, "enabled" : false, "name" : "App Store Sync" },
+      { "current" : null, "enabled" : false, "name" : "Subscription Status" },
+      { "current" : null, "enabled" : false, "name" : "App Transaction" },
+      { "current" : null, "enabled" : false, "name" : "Manage Subscriptions Sheet" },
+      { "current" : null, "enabled" : false, "name" : "Refund Request Sheet" },
+      { "current" : null, "enabled" : false, "name" : "Offer Code Redeem Sheet" }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21478340",
+      "localizations" : [
+        {
+          "description" : "Brief AI Premium",
+          "displayName" : "Premium",
+          "locale" : "tr_TR"
+        },
+        {
+          "description" : "Brief AI Premium",
+          "displayName" : "Premium",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Brief AI Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "49.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6741234567",
+          "introductoryOffer" : {
+            "internalID" : "6741234568",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Tüm 10 konu, günlük bildirim, sınırsız kayıt. Aylık.",
+              "displayName" : "Premium · Aylık",
+              "locale" : "tr_TR"
+            },
+            {
+              "description" : "All 10 topics, daily notifications, unlimited saves. Monthly.",
+              "displayName" : "Premium · Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.hazarustun.ainewsapp.premium.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium Monthly",
+          "subscriptionGroupID" : "21478340",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "399.00",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6741234569",
+          "introductoryOffer" : {
+            "internalID" : "6741234570",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
+          "localizations" : [
+            {
+              "description" : "Tüm 10 konu, günlük bildirim, sınırsız kayıt. Yıllık (%33 indirim).",
+              "displayName" : "Premium · Yıllık",
+              "locale" : "tr_TR"
+            },
+            {
+              "description" : "All 10 topics, daily notifications, unlimited saves. Annual (33% off).",
+              "displayName" : "Premium · Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.hazarustun.ainewsapp.premium.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Premium Annual",
+          "subscriptionGroupID" : "21478340",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
