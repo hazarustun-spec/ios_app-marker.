@@ -189,7 +189,7 @@ final class AppState: ObservableObject {
               profile.canAddMoreTopics else { return }
         profile.selectedTopicIds.append(topic.id)
         cacheProfile()
-        if isAuthenticated, let userId = try? UUID(uuidString: SupabaseManager.shared.client.auth.currentUser?.id.uuidString ?? "") {
+        if isAuthenticated, let userId = SupabaseManager.shared.client.auth.currentUser?.id {
             Task { try? await db.addUserTopic(userId: userId, topicId: topic.id) }
         }
     }
@@ -197,7 +197,7 @@ final class AppState: ObservableObject {
     func deselectTopic(_ topic: Topic) {
         profile.selectedTopicIds.removeAll { $0 == topic.id }
         cacheProfile()
-        if isAuthenticated, let userId = try? UUID(uuidString: SupabaseManager.shared.client.auth.currentUser?.id.uuidString ?? "") {
+        if isAuthenticated, let userId = SupabaseManager.shared.client.auth.currentUser?.id {
             Task { try? await db.removeUserTopic(userId: userId, topicId: topic.id) }
         }
     }
@@ -293,8 +293,13 @@ final class AppState: ObservableObject {
         while remainingLength > 0 {
             let randoms: [UInt8] = (0..<16).map { _ in
                 var random: UInt8 = 0
-                let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                if errorCode != errSecSuccess { fatalError("SecRandomCopyBytes failed") }
+                let status = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+                if status != errSecSuccess {
+                    // Extremely rare; SecRandomCopyBytes for 1 byte does not realistically fail.
+                    // Fall back to arc4random rather than crash the auth flow.
+                    Log.error("SecRandomCopyBytes failed (status=\(status)); falling back to arc4random")
+                    return UInt8(arc4random_uniform(256))
+                }
                 return random
             }
             randoms.forEach { byte in
