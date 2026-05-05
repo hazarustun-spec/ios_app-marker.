@@ -109,7 +109,7 @@ private struct WelcomePage: View {
                 .padding(.horizontal, 28)
                 .padding(.top, 18)
 
-                Text("Günlük, otomatik özet.\nAltı haber. Beş dakika. Gürültüsüz.")
+                Text("Günlük, otomatik özet.\nBeş dakika. Gürültüsüz.")
                     .font(.bodyLG)
                     .foregroundStyle(Color.textSecondary)
                     .lineSpacing(4)

@@ -128,6 +128,31 @@ extension SupabaseManager {
         }
     }
 
+    /// Returns the latest available news (most recent date with content matching the filter).
+    /// Used as fallback when today has no news yet (e.g. before 06:30 or generation failures).
+    func fetchLatestNews(topicIds: [String], limit: Int = 10) async throws -> [NewsItemRow] {
+        if topicIds.isEmpty {
+            return try await client
+                .from("news_items")
+                .select()
+                .order("date", ascending: false)
+                .order("created_at", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+        } else {
+            return try await client
+                .from("news_items")
+                .select()
+                .in("topic_id", values: topicIds)
+                .order("date", ascending: false)
+                .order("created_at", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+        }
+    }
+
     func fetchNewsForDate(_ date: Date, topicIds: [String]) async throws -> [NewsItemRow] {
         let dateStr = ISO8601DateFormatter.dateOnly.string(from: date)
         if topicIds.isEmpty {
