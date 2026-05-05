@@ -1,0 +1,26 @@
+=== 1.1 Dizin yapısı ===
+.
+./AINewsApp.xcodeproj
+./AINewsApp.xcodeproj/project.xcworkspace
+./AINewsApp.xcodeproj/project.xcworkspace/xcshareddata
+./AINewsApp.xcodeproj/project.xcworkspace/xcuserdata
+./AINewsApp.xcodeproj/xcshareddata
+./AINewsApp.xcodeproj/xcuserdata
+./AINewsApp.xcodeproj/xcuserdata/hazarustun.xcuserdatad
+./Resources
+./Resources/Assets.xcassets
+./Resources/Assets.xcassets/AppIcon.appiconset
+./Sources
+./Sources/AINewsApp
+./Sources/AINewsApp/App
+./Sources/AINewsApp/Components
+./Sources/AINewsApp/Core
+./Sources/AINewsApp/Features
+./Sources/AINewsApp/Services
+./Supabase
+./Supabase/functions
+./Supabase/functions/admin-news
+./Supabase/functions/generate-daily-news
+./Supabase/generate-daily-news
+./admin-dashboard
+./audit-logs
