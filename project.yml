@@ -42,11 +42,13 @@ targets:
       properties:
         CFBundleName: marker.
         CFBundleDisplayName: marker.
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
-          UIColorName: ""
+          UIColorName: launchBackground
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSFaceIDUsageDescription: "Used for authentication"
         UIAppFonts:
           - InstrumentSerif-Regular.ttf
           - InstrumentSerif-Italic.ttf
@@ -56,8 +58,10 @@ targets:
         product: Sentry
     postBuildScripts:
       - name: "Upload Debug Symbols to Sentry"
-        runOnlyWhenInstalling: false
+        runOnlyWhenInstalling: true   # only on archive/install, not every dev build
         shell: /bin/sh
+        outputFiles:
+          - $(DERIVED_FILE_DIR)/sentry-cli-debug-symbols.lock
         script: |
           if which sentry-cli >/dev/null; then
             export SENTRY_ORG=hazar-ustun
@@ -69,6 +73,7 @@ targets:
           else
             echo "warning: sentry-cli not installed, download from https://github.com/getsentry/sentry-cli/releases"
           fi
+          touch "$DERIVED_FILE_DIR/sentry-cli-debug-symbols.lock"
 
 packages:
   Supabase:
