@@ -383,22 +383,31 @@ private struct OnboardingTopicRow: View {
     }
 }
 
-// MARK: - Delivery Time Page
+// MARK: - Delivery Time Page (notification-only — news always at 06:30 IST)
 private struct DeliveryTimePage: View {
     @Binding var selectedTime: Date
     let onContinue: () -> Void
+
+    // Allowed range: 06:30 (news cutoff) → 23:59
+    private var minimumTime: Date {
+        Calendar.current.date(bySettingHour: 6, minute: 30, second: 0, of: Date()) ?? Date()
+    }
+    private var maximumTime: Date {
+        Calendar.current.date(bySettingHour: 23, minute: 59, second: 0, of: Date()) ?? Date()
+    }
 
     var body: some View {
         GeometryReader { geo in
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Haberlerini\nne zaman istiyorsun?")
+                    Text("Bildirim saati?")
                         .font(Font.custom("InstrumentSerif-Regular", size: 36))
                         .foregroundStyle(Color.textPrimary)
 
-                    Text("Her gün bu saatte sana bildirim gönderiyoruz.")
+                    Text("Yeni özetin her gün 06:30'da hazır oluyor. Sen ne zaman haberdar olmak istersin?")
                         .font(.bodyMD)
                         .foregroundStyle(Color.textSecondary)
+                        .lineSpacing(2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 22)
@@ -406,15 +415,23 @@ private struct DeliveryTimePage: View {
 
                 Spacer()
 
-                // Time picker
-                DatePicker("", selection: $selectedTime, displayedComponents: .hourAndMinute)
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.toneMint)
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
-                    .padding(.horizontal, 22)
+                // Time picker — minimum 06:30 (news cutoff)
+                DatePicker(
+                    "",
+                    selection: $selectedTime,
+                    in: minimumTime...maximumTime,
+                    displayedComponents: .hourAndMinute
+                )
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.toneMint)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .padding(.horizontal, 22)
+                .onAppear {
+                    if selectedTime < minimumTime { selectedTime = minimumTime }
+                }
 
                 Spacer()
 

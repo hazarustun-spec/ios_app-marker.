@@ -130,11 +130,9 @@ struct FeedView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            // Fetch all 10 stories so free users can see locked ones too.
-            var rows = try await SupabaseManager.shared.fetchTodayNews(topicIds: [])
-            if rows.isEmpty {
-                rows = try await SupabaseManager.shared.fetchLatestNews(topicIds: [], limit: 30)
-            }
+            // Today only. Yesterday's stories are hidden from the app (only saved
+            // ones survive in the Saved tab).
+            let rows = try await SupabaseManager.shared.fetchTodayNews(topicIds: [])
             news = rows.map { $0.toNewsItem() }
         } catch {
             Log.error("Feed load error: \(error)")

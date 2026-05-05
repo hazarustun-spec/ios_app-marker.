@@ -23,7 +23,6 @@ struct HomeView: View {
                         } else if news.isEmpty {
                             emptyState
                         } else {
-                            fallbackBanner
                             heroSection
                             alsoTodaySection
                             Spacer().frame(height: 110)
@@ -50,10 +49,10 @@ struct HomeView: View {
                     .foregroundStyle(Color.textTertiary)
 
                 if !isLoading && !news.isEmpty {
-                    Circle().fill(headerStatusColor).frame(width: 5, height: 5)
-                    Text(headerStatusText)
+                    Circle().fill(Color.success).frame(width: 5, height: 5)
+                    Text("TAZE")
                         .font(.labelSM)
-                        .foregroundStyle(headerStatusColor)
+                        .foregroundStyle(Color.success)
                 }
             }
         }
@@ -61,30 +60,22 @@ struct HomeView: View {
         .padding(.vertical, 14)
     }
 
-    // Header date — uses news's actual date (might be today or older fallback)
+    // Header date — always today (we never fall back to older content)
     private var headerDateLabel: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "tr_TR")
         f.dateFormat = "EEE · dd MMM"
-
-        // If we have news, show that news's date; else show today
-        let date = news.first?.date ?? Date()
-        return f.string(from: date).uppercased()
+        return f.string(from: Date()).uppercased()
     }
 
-    private var isShowingToday: Bool {
-        guard let newsDate = news.first?.date else { return true }
-        return Calendar.current.isDateInToday(newsDate)
-    }
-
-    private var headerStatusText: String {
-        if isShowingToday { return "TAZE" }
-        if let d = news.first?.date, Calendar.current.isDateInYesterday(d) { return "DÜN" }
-        return "ARŞİV"
-    }
-
-    private var headerStatusColor: Color {
-        isShowingToday ? Color.success : Color.textTertiary
+    // News are guaranteed delivered by 06:30 IST. Before that → "preparing".
+    // Computed in user's local time but referenced to IST cutoff.
+    private var isBeforeDailyCutoff: Bool {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Istanbul")!
+        let now = Date()
+        let cutoff = cal.date(bySettingHour: 6, minute: 30, second: 0, of: now) ?? now
+        return now < cutoff
     }
 
     // MARK: - Hero section
@@ -234,41 +225,61 @@ struct HomeView: View {
         .padding(.top, 20)
     }
 
+    @ViewBuilder
     private var emptyState: some View {
+        if isBeforeDailyCutoff {
+            preparingState
+        } else {
+            generalEmptyState
+        }
+    }
+
+    // Before 06:30 IST: news being generated/delivered
+    private var preparingState: some View {
+        VStack(spacing: 18) {
+            // Subtle animated indicator
+            ZStack {
+                Circle()
+                    .stroke(Color.brandPrimary.opacity(0.3), lineWidth: 4)
+                    .frame(width: 64, height: 64)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.textPrimary)
+            }
+            .padding(.bottom, 4)
+
+            Text("Yeni özet hazırlanıyor.")
+                .font(.displayXS)
+                .foregroundStyle(Color.textPrimary)
+
+            Text("Günün haberleri saat 06:30'da telefonuna düşecek.")
+                .font(.bodySM)
+                .foregroundStyle(Color.textTertiary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .padding(.horizontal, 40)
+        }
+        .padding(.top, 100)
+    }
+
+    // After 06:30 IST but no news yet — should be very rare
+    private var generalEmptyState: some View {
         VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 32))
+                .foregroundStyle(Color.textTertiary)
+                .padding(.bottom, 4)
+
             Text("Henüz haber yok.")
                 .font(.displayXS)
                 .foregroundStyle(Color.textPrimary)
-            Text("Bağlantını kontrol et veya biraz sonra tekrar dene.")
+            Text("Bağlantını kontrol et veya birazdan tekrar dene.")
                 .font(.bodySM)
                 .foregroundStyle(Color.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }
-        .padding(.top, 80)
-    }
-
-    // Banner shown when displaying older content as fallback
-    @ViewBuilder
-    private var fallbackBanner: some View {
-        if !isLoading && !news.isEmpty && !isShowingToday {
-            HStack(spacing: 10) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.textPrimary)
-                Text("Bugünün haberleri 06:30'da hazır olacak. Şimdilik en son özeti gösteriyoruz.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color(hex: "#555555"))
-                    .lineSpacing(1)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.toneCream)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 22)
-            .padding(.bottom, 12)
-        }
+        .padding(.top, 100)
     }
 
     // MARK: - Helpers
@@ -279,14 +290,9 @@ struct HomeView: View {
             // Free users see only their selected topics. Premium see all.
             let topicIds = appState.profile.isPremium ? [] : appState.profile.selectedTopicIds
 
-            // 1. Try today's news
-            var rows = try await SupabaseManager.shared.fetchTodayNews(topicIds: topicIds)
-
-            // 2. Fallback: latest available news (yesterday or older)
-            if rows.isEmpty {
-                rows = try await SupabaseManager.shared.fetchLatestNews(topicIds: topicIds, limit: 10)
-            }
-
+            // ONLY today's news. No fallback to yesterday — yesterday's stories are
+            // hidden from the app (still accessible in Saved if user bookmarked them).
+            let rows = try await SupabaseManager.shared.fetchTodayNews(topicIds: topicIds)
             news = rows.map { $0.toNewsItem() }
         } catch {
             Log.error("News load error: \(error)")

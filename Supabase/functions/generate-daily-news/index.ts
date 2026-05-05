@@ -1,10 +1,9 @@
-// generate-daily-news — bulletproof generation with structured output + fallback
-// Deploy: supabase functions deploy generate-daily-news --no-verify-jwt --project-ref zxseytwpunjajypzrmmr
+// generate-daily-news — REAL news only via Claude + web_search.
+// No placeholder/explainer fallbacks; if real verifiable news cannot be found
+// after broad and narrow searches, the function fails (so reconciliation cron
+// will retry later). Each insert has at least 1 real source URL.
 //
-// Robustness layers:
-//  1. Structured output (Claude tool_use) → guaranteed valid JSON
-//  2. Two-pass strategy: news_search → if insufficient, evergreen_analysis
-//  3. Final fallback: write a topic explainer using model knowledge (no web)
+// Deploy: supabase functions deploy generate-daily-news --no-verify-jwt --project-ref zxseytwpunjajypzrmmr
 
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -52,7 +51,7 @@ async function insertNews(row: Record<string, unknown>): Promise<"inserted" | "d
 
 const ARTICLE_TOOL = {
   name: "publish_article",
-  description: "Final haberi bu araç ile yayınla. Tüm alanlar zorunludur.",
+  description: "Final haberi bu araç ile yayınla. Tüm alanlar zorunludur ve kaynak URL'leri gerçek olmalı.",
   input_schema: {
     type: "object",
     properties: {
@@ -62,7 +61,8 @@ const ARTICLE_TOOL = {
       source_urls: {
         type: "array",
         items: { type: "string" },
-        description: "1-3 gerçek kaynak URL'si (web_search sonuçlarındaki)",
+        description: "1-3 GERÇEK kaynak URL'si — sadece web_search sonuçlarındaki linkler",
+        minItems: 1,
       },
     },
     required: ["title", "summary", "body", "source_urls"],
@@ -76,29 +76,16 @@ type Article = {
   source_urls: string[];
 };
 
-// Sleep helper for rate limit recovery
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-async function callClaude(
-  prompt: string,
-  options: { useWebSearch: boolean; maxRetries: number }
-): Promise<Article> {
-  const tools: any[] = [ARTICLE_TOOL];
-  if (options.useWebSearch) {
-    tools.push({
-      type: "web_search_20250305",
-      name: "web_search",
-      max_uses: 3,
-    });
-  }
-
+async function callClaude(prompt: string, maxRetries = 2): Promise<Article> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180_000);
 
-  let lastErr: Error | null = null;
-
   try {
-    for (let attempt = 1; attempt <= options.maxRetries; attempt++) {
+    let lastErr: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         signal: ctrl.signal,
@@ -110,29 +97,32 @@ async function callClaude(
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 3000,
-          tools,
+          tools: [
+            ARTICLE_TOOL,
+            { type: "web_search_20250305", name: "web_search", max_uses: 4 },
+          ],
           tool_choice: { type: "tool", name: "publish_article" },
           messages: [{ role: "user", content: prompt }],
         }),
       });
 
-      // Rate limit handling — read retry-after header if available
+      // 429 — rate limit
       if (r.status === 429) {
         const retryAfter = r.headers.get("retry-after");
         const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 60_000 * attempt;
-        console.log(`  ⏱  Anthropic 429, ${waitMs / 1000}s bekleniyor (attempt ${attempt}/${options.maxRetries})`);
-        if (attempt < options.maxRetries) {
+        console.log(`  ⏱  Anthropic 429, ${waitMs / 1000}s bekleniyor (${attempt}/${maxRetries})`);
+        if (attempt < maxRetries) {
           await sleep(waitMs);
           continue;
         }
-        throw new Error(`Anthropic 429 after ${options.maxRetries} retries`);
+        throw new Error(`Anthropic 429 after ${maxRetries} retries`);
       }
 
+      // 5xx — server error
       if (r.status >= 500) {
-        // Server error → exponential backoff
         const waitMs = 5_000 * attempt;
         console.log(`  ⚠️  Anthropic ${r.status}, ${waitMs / 1000}s bekleniyor`);
-        if (attempt < options.maxRetries) {
+        if (attempt < maxRetries) {
           await sleep(waitMs);
           continue;
         }
@@ -148,21 +138,29 @@ async function callClaude(
       const toolUse = blocks.find(b => b.type === "tool_use" && b.name === "publish_article");
 
       if (!toolUse?.input) {
-        // Sometimes model bails out without calling the tool
         const fallbackText = blocks.filter(b => b.type === "text").map(b => b.text).join("\n");
-        lastErr = new Error(`Claude tool çağrısı yapmadı. Yanıt: "${fallbackText.slice(0, 200)}"`);
-        if (attempt < options.maxRetries) continue;
+        lastErr = new Error(`Claude tool çağırmadı. Yanıt: "${fallbackText.slice(0, 200)}"`);
+        if (attempt < maxRetries) continue;
         throw lastErr;
       }
 
       const article = toolUse.input as Article;
-      // Validate
       if (!article.title || !article.summary || !article.body) {
         lastErr = new Error(`Eksik alan: title=${!!article.title} summary=${!!article.summary} body=${!!article.body}`);
-        if (attempt < options.maxRetries) continue;
+        if (attempt < maxRetries) continue;
         throw lastErr;
       }
-      const validUrls = (article.source_urls || []).filter(u => typeof u === "string" && u.startsWith("http"));
+
+      // STRICT: gerçek URL zorunlu
+      const validUrls = (article.source_urls || []).filter(u =>
+        typeof u === "string" && (u.startsWith("http://") || u.startsWith("https://"))
+      );
+      if (validUrls.length === 0) {
+        lastErr = new Error("Hiç gerçek kaynak URL'si yok — haber reddedildi (no fake content policy)");
+        if (attempt < maxRetries) continue;
+        throw lastErr;
+      }
+
       return {
         title: String(article.title).slice(0, 200),
         summary: String(article.summary),
@@ -170,114 +168,76 @@ async function callClaude(
         source_urls: validUrls,
       };
     }
-    throw lastErr ?? new Error("Tüm denemeler başarısız");
+    throw lastErr ?? new Error("All retries failed");
   } finally {
     clearTimeout(timer);
   }
 }
 
-// ── 3 katmanlı içerik üretim stratejisi ──────────────────────────────────────
+// ── 2-tier strategy: SPECIFIC topic news → BROADER topic news ────────────────
+// Both tiers do web search. If both fail, we return error (reconciliation cron
+// will retry next hour). We never insert without a real source URL.
 
-async function generateArticle(name: string, desc: string, date: string): Promise<{ article: Article; mode: string }> {
-  // Strateji 1: Web search ile gerçek haber
+async function generateRealArticle(name: string, desc: string, date: string): Promise<{ article: Article; tier: string }> {
+  // Tier 1: topic'e spesifik gerçek haber, son 7 gün
   try {
-    const article = await callClaude(buildNewsSearchPrompt(name, desc, date), {
-      useWebSearch: true,
-      maxRetries: 2,
-    });
-    if (article.source_urls.length > 0) {
-      return { article, mode: "news_search" };
-    }
-    console.log(`  ⚠️  ${name}: web_search bitti ama URL yok, evergreen mode'a geçiyor`);
+    const article = await callClaude(buildSpecificPrompt(name, desc, date));
+    return { article, tier: "specific" };
   } catch (err) {
-    console.log(`  ⚠️  ${name}: news_search başarısız (${err}), evergreen mode'a geçiyor`);
+    console.log(`  ⚠️  ${name}: tier-1 (specific) başarısız: ${err}. Tier-2'ye geçiliyor`);
   }
 
-  // Strateji 2: Web search ile evergreen analiz (haber yoksa "şu hafta sektör nasıl gidiyor")
-  try {
-    const article = await callClaude(buildEvergreenPrompt(name, desc, date), {
-      useWebSearch: true,
-      maxRetries: 2,
-    });
-    return { article, mode: "evergreen_search" };
-  } catch (err) {
-    console.log(`  ⚠️  ${name}: evergreen_search başarısız (${err}), knowledge mode'a geçiyor`);
-  }
-
-  // Strateji 3: Web olmadan model bilgisinden açıklayıcı yazı (last resort)
-  const article = await callClaude(buildExplainerPrompt(name, desc, date), {
-    useWebSearch: false,
-    maxRetries: 2,
-  });
-  return { article, mode: "explainer_no_web" };
+  // Tier 2: topic ile ilgili daha geniş gerçek haber, son 14 gün
+  // (hâlâ web_search ile gerçek kaynak URL'si zorunlu)
+  const article = await callClaude(buildBroaderPrompt(name, desc, date));
+  return { article, tier: "broader" };
 }
 
-function buildNewsSearchPrompt(name: string, desc: string, date: string): string {
-  return `Sen deneyimli bir Türk teknoloji gazetecisisin. Bugünün tarihi: ${date}.
+function buildSpecificPrompt(name: string, desc: string, date: string): string {
+  return `Sen deneyimli bir Türk teknoloji gazetecisisin. Bugün: ${date}.
 
-GÖREV: "${name}" alanında (${desc}) son 7 gün içinde yaşanan EN ÖNEMLİ ve DOĞRULANABİLİR gelişmeyi haber yaz.
+GÖREV: "${name}" alanında (${desc}) son 7 gün içinde yaşanan ÖNEMLİ ve DOĞRULANABİLİR bir gelişmeyi haber olarak yaz.
 
 SÜREÇ:
-1. web_search ile 2-3 sorgu yap. Türkçe ve İngilizce ara.
-2. Bulduğun en güvenilir haberi seç.
+1. web_search ile 2-3 farklı sorgu yap. Türkçe + İngilizce.
+   Örnek sorgular:
+   - "${name} latest news 2026"
+   - "${name} announcement this week"
+   - "${name} ${date.substring(0, 7)}"
+2. Bulduğun haberlerden EN ÖNEMLİ ve EN GÜVENİLİR olanı seç (büyük yayın, primary source).
 3. publish_article aracını çağır.
 
 KESİN KURALLAR:
-- Sadece arama sonuçlarındaki bilgileri yaz.
+- ASLA bilgi uydurma. Sadece arama sonuçlarındaki bilgileri yaz.
 - Spekülatif ifadeler ("muhtemelen", "olabilir") YASAK.
-- En az 1 GERÇEK kaynak URL'si zorunlu.
+- Tarihler, sayılar, isimler kesin olmalı.
+- En az 1 gerçek kaynak URL'si zorunlu.
+- Türkçe yaz, akıcı ve doğal (makine çevirisi gibi durmasın).
+- 4-5 paragraf, her biri 3-4 cümle.
 
-YAZIM:
-- Akıcı, doğal Türkçe (makine çevirisi gibi durmasın)
-- 4-5 paragraf, her biri 3-4 cümle
-- Body'de paragraflar arası "\\n\\n"
-
-publish_article ile JSON formatında yayınla.`;
+publish_article ile yayınla.`;
 }
 
-function buildEvergreenPrompt(name: string, desc: string, date: string): string {
-  return `Sen deneyimli bir Türk teknoloji gazetecisisin. Bugünün tarihi: ${date}.
+function buildBroaderPrompt(name: string, desc: string, date: string): string {
+  return `Sen deneyimli bir Türk teknoloji gazetecisisin. Bugün: ${date}.
 
-GÖREV: "${name}" alanında (${desc}) son haftaların öne çıkan TRENDİNİ veya BAĞLAM YAZISI'nı hazırla.
+GÖREV: "${name}" alanı (${desc}) ile ilgili son 14 gün içinde yaşanan herhangi bir ÖNEMLİ teknoloji haberini yaz.
 
-Bugün için spesifik gündem haberi olmasa bile okuyucuya değer sunacak bir analiz yaz:
-- Bu alanda son 1-2 hafta içindeki birden fazla gelişmenin özeti
-- Veya: bir önemli oyuncunun yol haritası
-- Veya: sektörün şu anki durumu
-
-SÜREÇ:
-1. web_search ile 2 sorgu yap.
-2. Bulduğun bilgileri sentezle.
-3. publish_article aracıyla yayınla.
+ARAMA STRATEJİSİ:
+- web_search ile 3-4 sorgu yap, GENİŞ tut.
+- "${name}" yerine bu alana yakın yan konuları da ara (ör. healthcare için "AI medical", policy için "AI regulation").
+- En son 14 gündeki herhangi bir önemli gelişme yeterli.
 
 KURALLAR:
-- En az 1 GERÇEK kaynak URL'si zorunlu.
-- Spekülatif ifadeler yasak.
+- Sadece arama sonuçlarındaki gerçek bilgileri yaz.
+- En az 1 gerçek kaynak URL'si zorunlu.
+- Spekülasyon yok.
 - Türkçe, akıcı, 4 paragraf.
 
 publish_article ile yayınla.`;
 }
 
-function buildExplainerPrompt(name: string, desc: string, date: string): string {
-  return `Sen deneyimli bir Türk teknoloji gazetecisisin. Bugünün tarihi: ${date}.
-
-GÖREV: "${name}" alanı (${desc}) hakkında okuyucuya değer sunan bir AÇIKLAYICI yazı hazırla.
-
-Web araması yapamadığın için kendi bilgine güvenerek:
-- Bu alanın tanımı, neden önemli olduğu
-- Ana oyuncular ve teknolojiler (eğitim verilerine kadar)
-- Mevcut durumunu ve önümüzdeki yön
-- 4 paragraf, her biri 3-4 cümle
-
-ÖNEMLİ:
-- Spesifik tarihler veya sayılar yazma (doğrulayamayız).
-- "Son haftada", "şu anda gerçekleşen" gibi güncel ifadeler kullanma.
-- source_urls listesini boş bırak ([]).
-
-publish_article aracıyla yayınla.`;
-}
-
-// ── Ana handler ───────────────────────────────────────────────────────────────
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "GET") {
@@ -328,9 +288,8 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 3 katmanlı strateji denenir; en az birisi mutlaka başarılı olur
   try {
-    const { article, mode } = await generateArticle(topic.name, topic.description, today);
+    const { article, tier } = await generateRealArticle(topic.name, topic.description, today);
 
     const insertResult = await insertNews({
       topic_id:    topic.id,
@@ -341,21 +300,27 @@ Deno.serve(async (req) => {
       source_urls: article.source_urls,
     });
 
-    console.log(`  ✓ ${insertResult} via ${mode} (${article.source_urls.length} kaynak)`);
+    console.log(`  ✓ ${insertResult} via ${tier} (${article.source_urls.length} kaynak)`);
     return new Response(
       JSON.stringify({
         date: today,
         topic_id: topic.id,
         status: insertResult,
-        mode,
+        tier,
         sources: article.source_urls.length,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error(`  ✗ tüm stratejiler başarısız: ${err}`);
+    // Real news bulunamadı — insert ATILMAZ. Reconciliation cron tekrar deneyecek.
+    console.error(`  ✗ gerçek haber bulunamadı: ${err}`);
     return new Response(
-      JSON.stringify({ date: today, topic_id: topic.id, status: "error", error: String(err) }),
+      JSON.stringify({
+        date: today,
+        topic_id: topic.id,
+        status: "error",
+        error: String(err),
+      }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

@@ -10,7 +10,9 @@ struct SettingsView: View {
     @State private var legalSheet: LegalDocument? = nil
     @State private var showDeleteAccountAlert = false
 
-    private let deliveryOptions = ["06:00", "07:00", "08:00", "09:00", "12:00", "18:00"]
+    // Notification times — news always arrive at 06:30 IST sharp, so options
+    // start at 06:30. Earlier options would notify before content is ready.
+    private let deliveryOptions = ["06:30", "07:00", "08:00", "09:00", "12:00", "18:00"]
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -45,7 +47,7 @@ struct SettingsView: View {
                                 .fill(Color.white)
                                 .frame(width: 40, height: 40)
                                 .overlay(Image(systemName: "clock").font(.system(size: 16)).foregroundStyle(Color.textPrimary))
-                            Text("GÜNLÜK TESLİMAT")
+                            Text("BİLDİRİM SAATİ")
                                 .font(.labelSM)
                                 .foregroundStyle(Color(hex: "#3a4f1a"))
                         }
@@ -56,7 +58,7 @@ struct SettingsView: View {
                             .foregroundStyle(Color.textPrimary)
                             .padding(.bottom, 6)
 
-                        Text("yerel saat · sadece hafta içi")
+                        Text("Haberler 06:30'da hazır oluyor")
                             .font(.bodySM)
                             .foregroundStyle(Color(hex: "#3a4f1a"))
                             .padding(.bottom, 16)
@@ -99,7 +101,7 @@ struct SettingsView: View {
                         Divider().background(Color.borderSubtle)
                         AutoToggleRow(
                             label: "Sabah bildirimi",
-                            help: "Özet hazır olduğunda tek bildirim",
+                            help: "Seçtiğin saatte tek bildirim — özet 06:30'da hazır",
                             isOn: $pushOn,
                             onChange: {
                                 if pushOn {
