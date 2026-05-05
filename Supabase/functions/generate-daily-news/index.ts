@@ -47,6 +47,15 @@ async function insertNews(row: Record<string, unknown>): Promise<"inserted" | "d
   throw new Error(`DB insert ${r.status}: ${await r.text()}`);
 }
 
+// Force=true durumunda mevcut row'u sil (yeni gerçek haber üzerine yazılsın)
+async function deleteNewsForTopic(topicId: string, date: string): Promise<void> {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/news_items?topic_id=eq.${topicId}&date=eq.${date}`,
+    { method: "DELETE", headers: sbHeaders }
+  );
+  if (!r.ok) throw new Error(`Delete ${r.status}: ${await r.text()}`);
+}
+
 // ── Claude structured output via tool_use ────────────────────────────────────
 
 const ARTICLE_TOOL = {
@@ -101,7 +110,9 @@ async function callClaude(prompt: string, maxRetries = 2): Promise<Article> {
             ARTICLE_TOOL,
             { type: "web_search_20250305", name: "web_search", max_uses: 4 },
           ],
-          tool_choice: { type: "tool", name: "publish_article" },
+          // NOT FORCED: Eğer Claude gerçek haber bulamazsa publish_article'ı
+          // çağırmaması gerekir. Forced tool_choice dummy ("placeholder")
+          // içerikle çağırmasına yol açıyordu.
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -151,12 +162,34 @@ async function callClaude(prompt: string, maxRetries = 2): Promise<Article> {
         throw lastErr;
       }
 
-      // STRICT: gerçek URL zorunlu
-      const validUrls = (article.source_urls || []).filter(u =>
-        typeof u === "string" && (u.startsWith("http://") || u.startsWith("https://"))
-      );
+      // STRICT: gerçek URL zorunlu (placeholder/example/test domain'leri reddedilir)
+      const FAKE_DOMAINS = ["example.com", "example.org", "placeholder.com", "test.com", "localhost"];
+      const SENTINEL_WORDS = ["placeholder", "lorem ipsum", "test article", "dummy"];
+
+      const validUrls = (article.source_urls || []).filter(u => {
+        if (typeof u !== "string") return false;
+        if (!(u.startsWith("http://") || u.startsWith("https://"))) return false;
+        const lower = u.toLowerCase();
+        return !FAKE_DOMAINS.some(fake => lower.includes(fake));
+      });
       if (validUrls.length === 0) {
-        lastErr = new Error("Hiç gerçek kaynak URL'si yok — haber reddedildi (no fake content policy)");
+        lastErr = new Error("Hiç gerçek kaynak URL'si yok — reddedildi");
+        if (attempt < maxRetries) continue;
+        throw lastErr;
+      }
+
+      // Sentinel kelime kontrolü — Claude bazen dummy content üretebiliyor
+      const combinedText = `${article.title} ${article.summary} ${article.body}`.toLowerCase();
+      const hasSentinel = SENTINEL_WORDS.some(s => combinedText.includes(s));
+      if (hasSentinel) {
+        lastErr = new Error(`Dummy content tespit edildi (${SENTINEL_WORDS.find(s => combinedText.includes(s))}) — reddedildi`);
+        if (attempt < maxRetries) continue;
+        throw lastErr;
+      }
+
+      // Minimum length sanity check
+      if (article.title.length < 15 || article.body.length < 200) {
+        lastErr = new Error(`İçerik çok kısa (title=${article.title.length}, body=${article.body.length}) — reddedildi`);
         if (attempt < maxRetries) continue;
         throw lastErr;
       }
@@ -253,8 +286,12 @@ Deno.serve(async (req) => {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  let body: { topic_id?: string } = {};
+  let body: { topic_id?: string; force?: boolean } = {};
   try { body = await req.json(); } catch { /* boş body */ }
+
+  // Query param desteği (?force=true)
+  const url = new URL(req.url);
+  const forceFlag = body.force === true || url.searchParams.get("force") === "true";
 
   let topic: { id: string; name: string; description: string } | undefined;
 
@@ -278,14 +315,19 @@ Deno.serve(async (req) => {
     );
   }
 
-  console.log(`[${today}] → ${topic.id} (${topic.name})`);
+  console.log(`[${today}] → ${topic.id} (${topic.name})${forceFlag ? " [FORCE]" : ""}`);
 
   if (await newsExists(topic.id, today)) {
-    console.log(`  ⊘ zaten var, atlandı`);
-    return new Response(
-      JSON.stringify({ date: today, topic_id: topic.id, status: "duplicate" }),
-      { headers: { "Content-Type": "application/json" } }
-    );
+    if (forceFlag) {
+      console.log(`  🔄 force=true, mevcut satır siliniyor`);
+      await deleteNewsForTopic(topic.id, today);
+    } else {
+      console.log(`  ⊘ zaten var, atlandı`);
+      return new Response(
+        JSON.stringify({ date: today, topic_id: topic.id, status: "duplicate" }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   try {
