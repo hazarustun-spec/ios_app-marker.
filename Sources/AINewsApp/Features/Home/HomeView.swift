@@ -131,6 +131,7 @@ struct HomeView: View {
                             .font(.system(size: 15))
                             .foregroundStyle(Color.textPrimary)
                     }
+                    .accessibilityLabel(appState.isSaved(top) ? "Kayıttan çıkar" : "Kaydedilenlere ekle")
                 }
                 .padding(.horizontal, 22)
                 .padding(.top, 14)
@@ -410,6 +411,7 @@ struct StoryCardView: View {
                             .foregroundStyle(tone.text)
                     }
                     .padding(.top, 2)
+                    .accessibilityLabel(isSaved ? "Kayıttan çıkar" : "Kaydedilenlere ekle")
                 }
                 .padding(.bottom, 14)
 
@@ -454,6 +456,9 @@ struct StoryCardView: View {
             .clipShape(RoundedRectangle(cornerRadius: Radius.xl))
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(news.topic?.name ?? news.topicId) haberi: \(news.title). \(news.readTime).")
+        .accessibilityHint(isLocked ? "Premium gerekli. Detay için dokun." : "Detay için dokun.")
     }
 
     private func topicIcon(_ id: String) -> String {

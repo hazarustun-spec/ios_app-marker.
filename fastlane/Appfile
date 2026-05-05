@@ -1,0 +1,5 @@
+app_identifier "com.hazarustun.ainewsapp"
+apple_id "hazarustun@gmail.com"
+
+# itc_team_id "..."   # App Store Connect Team ID (gerekirse fastlane çalıştırdığında soracak)
+# team_id "..."       # Apple Developer Team ID

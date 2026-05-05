@@ -25,6 +25,7 @@ struct BriefLogo: View {
             ctx.fill(dot, with: .color(color))
         }
         .frame(width: size, height: size)
+        .accessibilityHidden(true) // Pure dekoratif
     }
 }
 

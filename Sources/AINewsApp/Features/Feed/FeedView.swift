@@ -194,6 +194,7 @@ struct FeedRowView: View {
                         .foregroundStyle(Color(hex: "#999999"))
                 }
                 .padding(.top, 4)
+                .accessibilityLabel(isSaved ? "Kayıttan çıkar" : "Kaydedilenlere ekle")
             }
             .padding(.vertical, 18)
             .overlay(

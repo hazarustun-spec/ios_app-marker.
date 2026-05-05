@@ -1,0 +1,135 @@
+# Fastfile — marker. iOS automation
+# Usage: fastlane ios <lane>
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ──────────────────────────────────────────────────────────────────
+  # SETUP
+  # ──────────────────────────────────────────────────────────────────
+
+  before_all do
+    # xcodegen ile pbxproj her zaman güncel olsun
+    sh "cd .. && xcodegen generate"
+  end
+
+  # ──────────────────────────────────────────────────────────────────
+  # TEST
+  # ──────────────────────────────────────────────────────────────────
+
+  desc "Unit testleri çalıştır (iPhone 16 Pro Max simulator)"
+  lane :test do
+    run_tests(
+      scheme: "AINewsApp",
+      destination: "platform=iOS Simulator,name=iPhone 16 Pro Max",
+      clean: true,
+      code_coverage: true
+    )
+  end
+
+  # ──────────────────────────────────────────────────────────────────
+  # BUILD
+  # ──────────────────────────────────────────────────────────────────
+
+  desc "Release build (Archive değil — sadece compile kontrolü)"
+  lane :build_release do
+    build_app(
+      scheme: "AINewsApp",
+      configuration: "Release",
+      skip_archive: true,
+      destination: "generic/platform=iOS",
+      include_bitcode: false,
+      include_symbols: true
+    )
+  end
+
+  # ──────────────────────────────────────────────────────────────────
+  # TESTFLIGHT (Internal)
+  # ──────────────────────────────────────────────────────────────────
+
+  desc "Build, archive ve TestFlight'a yükle (Internal Testing)"
+  lane :beta do
+    # Build numarasını otomatik artır
+    increment_build_number(xcodeproj: "AINewsApp.xcodeproj")
+
+    # Archive + ipa üret
+    build_app(
+      scheme: "AINewsApp",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "marker.ipa",
+      include_bitcode: false,
+      include_symbols: true
+    )
+
+    # TestFlight upload
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      skip_submission: true,        # External review değil, internal
+      changelog: changelog_from_git_commits(
+        commits_count: 10,
+        pretty: "- %s",
+        merge_commit_filtering: "exclude_merges"
+      )
+    )
+
+    # Build numarasını commit
+    commit_version_bump(
+      message: "chore: bump build to TestFlight",
+      xcodeproj: "AINewsApp.xcodeproj",
+      force: true
+    )
+  end
+
+  # ──────────────────────────────────────────────────────────────────
+  # PRODUCTION RELEASE
+  # ──────────────────────────────────────────────────────────────────
+
+  desc "App Store production submission (manual review)"
+  lane :release do
+    # Versiyon kontrolü
+    version = get_version_number(xcodeproj: "AINewsApp.xcodeproj")
+    UI.message "Submitting marker. v#{version} for App Store review"
+
+    UI.user_error!("Önce 'fastlane ios beta' ile TestFlight'ta test et!") unless UI.confirm(
+      "TestFlight'ta production-ready test yapıldı mı?"
+    )
+
+    increment_build_number(xcodeproj: "AINewsApp.xcodeproj")
+
+    build_app(
+      scheme: "AINewsApp",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "marker.ipa"
+    )
+
+    upload_to_app_store(
+      submit_for_review: true,
+      automatic_release: false,        # Manuel release (Apple onaylasa bile)
+      force: true,                     # HTML açıklamaları override et
+      skip_metadata: false,
+      skip_screenshots: false,
+      precheck_include_in_app_purchases: true,
+      submission_information: {
+        export_compliance_uses_encryption: false,
+        add_id_info_uses_idfa: false,
+        content_rights_contains_third_party_content: true,
+        content_rights_has_rights: true
+      }
+    )
+  end
+
+  # ──────────────────────────────────────────────────────────────────
+  # CERTIFICATES & PROVISIONING
+  # ──────────────────────────────────────────────────────────────────
+
+  desc "Otomatik signing setup (match yerine basit Xcode managed)"
+  lane :setup_signing do
+    UI.message "Code signing Xcode tarafından otomatik yönetiliyor."
+    UI.message "Apple Developer Team ID'ni project.yml:12'ye ekle, sonra xcodegen generate çalıştır."
+  end
+end

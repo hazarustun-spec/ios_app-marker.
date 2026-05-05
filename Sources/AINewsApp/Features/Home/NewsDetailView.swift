@@ -129,6 +129,7 @@ struct NewsDetailView: View {
                         .foregroundStyle(Color.textPrimary)
                         .frame(width: 36, height: 36)
                 }
+                .accessibilityLabel("Geri")
 
                 Spacer()
 
@@ -136,6 +137,7 @@ struct NewsDetailView: View {
                     .font(.system(size: 10, weight: .medium).monospaced())
                     .foregroundStyle(Color(hex: "#666666"))
                     .tracking(1.2)
+                    .accessibilityHidden(true) // category shown in combined label
 
                 Spacer()
 
@@ -147,6 +149,7 @@ struct NewsDetailView: View {
                         .foregroundStyle(Color.textPrimary)
                         .frame(width: 36, height: 36)
                 }
+                .accessibilityLabel(appState.isSaved(news) ? "Kayıttan çıkar" : "Kaydedilenlere ekle")
 
                 Button {
                     shareImage = ShareImageGenerator.generate(news: news)
@@ -157,6 +160,7 @@ struct NewsDetailView: View {
                         .foregroundStyle(Color.textPrimary)
                         .frame(width: 36, height: 36)
                 }
+                .accessibilityLabel("Paylaş")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
