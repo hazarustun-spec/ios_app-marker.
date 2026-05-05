@@ -39,3 +39,5 @@ AINewsApp.xcodeproj/
 *.cer
 *.mobileprovision
 .env
+
+.sentryclirc

@@ -41,7 +41,7 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "49.99",
+          "displayPrice" : "29.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6741234567",
@@ -71,7 +71,7 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "399.00",
+          "displayPrice" : "249.00",
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "6741234569",
@@ -82,12 +82,12 @@
           },
           "localizations" : [
             {
-              "description" : "Tüm 10 konu, günlük bildirim, sınırsız kayıt. Yıllık (%33 indirim).",
+              "description" : "Tüm 10 konu, günlük bildirim, sınırsız kayıt. Yıllık (%30 indirim).",
               "displayName" : "Premium · Yıllık",
               "locale" : "tr_TR"
             },
             {
-              "description" : "All 10 topics, daily notifications, unlimited saves. Annual (33% off).",
+              "description" : "All 10 topics, daily notifications, unlimited saves. Annual (30% off).",
               "displayName" : "Premium · Annual",
               "locale" : "en_US"
             }

@@ -20,21 +20,21 @@ struct PaywallView: View {
 
         var price: String {
             switch self {
-            case .monthly: return "₺49.99/ay"
-            case .annual:  return "₺399/yıl"
+            case .monthly: return "₺29.99/ay"
+            case .annual:  return "₺249/yıl"
             }
         }
 
         var pricePerMonth: String {
             switch self {
-            case .monthly: return "₺49.99/ay"
-            case .annual:  return "₺33.25/ay"
+            case .monthly: return "₺29.99/ay"
+            case .annual:  return "₺20.75/ay"
             }
         }
 
         var badge: String? {
             switch self {
-            case .annual:  return "%33 İndirim"
+            case .annual:  return "%30 İndirim"
             case .monthly: return nil
             }
         }
@@ -167,21 +167,21 @@ struct PaywallView: View {
     // MARK: - CTA & Disclosure (App Store Guideline 3.1.2)
     private var ctaTitle: String {
         switch selectedPlan {
-        case .monthly: return "1 Hafta Ücretsiz, Sonra ₺49.99/ay"
-        case .annual:  return "2 Hafta Ücretsiz, Sonra ₺399/yıl"
+        case .monthly: return "1 Hafta Ücretsiz, Sonra ₺29.99/ay"
+        case .annual:  return "2 Hafta Ücretsiz, Sonra ₺249/yıl"
         }
     }
 
     private var disclosureText: String {
         switch selectedPlan {
         case .monthly:
-            return "İlk 1 hafta ücretsiz. Deneme sonunda otomatik olarak ₺49.99/ay yenilenir. " +
+            return "İlk 1 hafta ücretsiz. Deneme sonunda otomatik olarak ₺29.99/ay yenilenir. " +
                    "İptal etmezsen her ay aynı tutarda yenilenir. " +
                    "İptal: Ayarlar → Apple ID → Abonelikler. " +
                    "Deneme süresinin son 24 saatinden önce iptal edersen ücret alınmaz."
         case .annual:
-            return "İlk 2 hafta ücretsiz. Deneme sonunda otomatik olarak ₺399/yıl yenilenir " +
-                   "(yaklaşık ₺33.25/ay). İptal etmezsen her yıl aynı tutarda yenilenir. " +
+            return "İlk 2 hafta ücretsiz. Deneme sonunda otomatik olarak ₺249/yıl yenilenir " +
+                   "(yaklaşık ₺20.75/ay). İptal etmezsen her yıl aynı tutarda yenilenir. " +
                    "İptal: Ayarlar → Apple ID → Abonelikler. " +
                    "Deneme süresinin son 24 saatinden önce iptal edersen ücret alınmaz."
         }

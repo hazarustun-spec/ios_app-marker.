@@ -203,7 +203,7 @@ extension LegalDocument {
         LegalSection(
             heading: "Premium Abonelik",
             body: """
-            Premium abonelik (aylık ₺49.99 / yıllık ₺399), Apple App Store üzerinden işletilir.
+            Premium abonelik (aylık ₺29.99 / yıllık ₺249), Apple App Store üzerinden işletilir.
             • Otomatik yenilenir; iptal etmek için Ayarlar → Apple ID → Abonelikler.
             • Mevcut dönemin sonuna kadar Premium özellikleri kullanmaya devam edersin.
             • Apple iade politikası geçerlidir; iade taleplerin için Apple'a başvur.

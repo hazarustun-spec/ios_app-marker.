@@ -8,15 +8,14 @@ struct AINewsApp: App {
 
     init() {
         SentrySDK.start { options in
-            // marker. iOS — DSN'i Sentry Dashboard'da proje açtıktan sonra al
-            options.dsn = "https://YOUR_SENTRY_DSN@oXXXXXX.ingest.sentry.io/YYYYYY"
+            options.dsn = "https://52d17a87df3e5b8ab321c3c2f807a614@o4511334895386625.ingest.de.sentry.io/4511334898335824"
             options.debug = false
             options.tracesSampleRate = 0.2
             options.enableAutoPerformanceTracing = true
             options.enableUserInteractionTracing = true
             #if DEBUG
             options.environment = "debug"
-            options.enabled = false   // DEBUG'da kapalı, gerçek crash sadece TestFlight/AppStore'dan
+            options.enabled = false   // DEBUG'da kapalı; gerçek crash'ler sadece TestFlight/App Store'dan toplanır
             #else
             options.environment = "production"
             #endif
