@@ -1,32 +1,34 @@
 import SwiftUI
 
 // MARK: - Typography scale (marker.)
+// All fonts respond to Dynamic Type via `relativeTo:` parameter.
+// User's "Settings → Display & Brightness → Text Size" preference applies.
 extension Font {
-    // Display — Instrument Serif
-    static let displayXL  = Font.custom("InstrumentSerif-Regular", size: 56).weight(.regular)
-    static let displayLG  = Font.custom("InstrumentSerif-Regular", size: 40).weight(.regular)
-    static let displayMD  = Font.custom("InstrumentSerif-Regular", size: 36).weight(.regular)
-    static let displaySM  = Font.custom("InstrumentSerif-Regular", size: 30).weight(.regular)
-    static let displayXS  = Font.custom("InstrumentSerif-Regular", size: 22).weight(.regular)
+    // Display — Instrument Serif (relativeTo: .largeTitle/.title scaling)
+    static let displayXL  = Font.custom("InstrumentSerif-Regular", size: 56, relativeTo: .largeTitle).weight(.regular)
+    static let displayLG  = Font.custom("InstrumentSerif-Regular", size: 40, relativeTo: .largeTitle).weight(.regular)
+    static let displayMD  = Font.custom("InstrumentSerif-Regular", size: 36, relativeTo: .title).weight(.regular)
+    static let displaySM  = Font.custom("InstrumentSerif-Regular", size: 30, relativeTo: .title2).weight(.regular)
+    static let displayXS  = Font.custom("InstrumentSerif-Regular", size: 22, relativeTo: .title3).weight(.regular)
 
     // Display italic
-    static let displayItalicXL = Font.custom("InstrumentSerif-Italic", size: 56).weight(.regular)
-    static let displayItalicMD = Font.custom("InstrumentSerif-Italic", size: 40).weight(.regular)
+    static let displayItalicXL = Font.custom("InstrumentSerif-Italic", size: 56, relativeTo: .largeTitle).weight(.regular)
+    static let displayItalicMD = Font.custom("InstrumentSerif-Italic", size: 40, relativeTo: .largeTitle).weight(.regular)
 
-    // Body — system sans
-    static let bodyLG  = Font.system(size: 16, weight: .regular)
-    static let bodyMD  = Font.system(size: 14.5, weight: .regular)
-    static let bodySM  = Font.system(size: 13, weight: .regular)
+    // Body — system sans (Dynamic Type tarafından zaten ölçeklenir)
+    static let bodyLG  = Font.system(.body)
+    static let bodyMD  = Font.system(.callout)
+    static let bodySM  = Font.system(.footnote)
 
-    // Heading — system sans semibold
-    static let headingLG = Font.system(size: 16, weight: .semibold)
-    static let headingMD = Font.system(size: 15, weight: .semibold)
-    static let headingSM = Font.system(size: 13, weight: .semibold)
+    // Heading — semibold
+    static let headingLG = Font.system(.body).weight(.semibold)
+    static let headingMD = Font.system(.callout).weight(.semibold)
+    static let headingSM = Font.system(.footnote).weight(.semibold)
 
-    // Label — monospace
-    static let labelLG = Font.system(size: 12, weight: .medium).monospaced()
-    static let labelMD = Font.system(size: 11, weight: .medium).monospaced()
-    static let labelSM = Font.system(size: 10, weight: .medium).monospaced()
+    // Label — monospace caption
+    static let labelLG = Font.system(.caption).weight(.medium).monospaced()
+    static let labelMD = Font.system(.caption2).weight(.medium).monospaced()
+    static let labelSM = Font.system(.caption2).weight(.medium).monospaced()
 }
 
 // MARK: - Spacing

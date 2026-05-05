@@ -33,6 +33,9 @@ struct AINewsApp: App {
             }
             .environmentObject(appState)
             .preferredColorScheme(.light)
+            // Dynamic Type: large→accessibility2 arası destekle, daha büyüğüne
+            // çıkmasın (custom font'lar UI layout'unu kıracak boyutlara ulaşır)
+            .dynamicTypeSize(.large ... .accessibility2)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
