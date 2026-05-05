@@ -8,10 +8,13 @@ final class SupabaseManager {
     let client: SupabaseClient
 
     private init() {
-        client = SupabaseClient(
-            supabaseURL: URL(string: SupabaseConfig.url)!,
-            supabaseKey: SupabaseConfig.anonKey
-        )
+        guard let url = URL(string: SupabaseConfig.url) else {
+            // Hardcoded literal — must always succeed. If it ever doesn't, app
+            // can't function at all, so a fatal at init is correct here (no
+            // recoverable state). This is unreachable in practice.
+            preconditionFailure("Invalid SupabaseConfig.url: \(SupabaseConfig.url)")
+        }
+        client = SupabaseClient(supabaseURL: url, supabaseKey: SupabaseConfig.anonKey)
     }
 }
 
