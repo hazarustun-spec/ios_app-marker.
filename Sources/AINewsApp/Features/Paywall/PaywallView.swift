@@ -6,6 +6,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPlan: Plan = .annual
     @State private var isPurchasing = false
+    @State private var purchaseError: String? = nil
 
     enum Plan: String, CaseIterable {
         case monthly = "monthly"
@@ -109,6 +110,26 @@ struct PaywallView: View {
 
                         // CTA
                         VStack(spacing: Spacing.md) {
+                            // Hata kutusu (purchase başarısız veya restore boş)
+                            if let err = purchaseError {
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Color.error)
+                                        .padding(.top, 2)
+                                    Text(err)
+                                        .font(.bodySM)
+                                        .foregroundStyle(Color.textPrimary)
+                                        .multilineTextAlignment(.leading)
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.error.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .padding(.horizontal, Spacing.lg)
+                            }
+
                             PrimaryButton(
                                 title: isPurchasing ? "İşleniyor..." : ctaTitle,
                                 isLoading: isPurchasing
@@ -188,6 +209,7 @@ struct PaywallView: View {
     }
 
     private func purchase() async {
+        purchaseError = nil
         let store = StoreKitManager.shared
         let productId = selectedPlan.storeKitId
 
@@ -196,12 +218,9 @@ struct PaywallView: View {
         }
 
         guard let product = store.product(for: productId) else {
-            isPurchasing = true
-            // Products not loaded (e.g. Simulator without StoreKit config) — treat as success in debug
-            try? await Task.sleep(for: .seconds(1))
-            isPurchasing = false
-            appState.profile.isPremium = true
-            dismiss()
+            // Production'da product yüklenememesi gerçek hata. Auto-grant YOK.
+            // Bedavaya premium dağıtmak güvenlik açığı olur.
+            purchaseError = "Abonelik bilgisi yüklenemedi. İnternet bağlantını kontrol et veya birazdan tekrar dene."
             return
         }
 
@@ -212,16 +231,22 @@ struct PaywallView: View {
         if success {
             await appState.refreshPremiumStatus()
             dismiss()
+        } else if let storeErr = store.purchaseError {
+            purchaseError = "Satın alma tamamlanamadı: \(storeErr)"
         }
+        // success=false ve error yok → kullanıcı iptal etti, sessizce kal
     }
 
     private func restorePurchases() async {
+        purchaseError = nil
         isPurchasing = true
         let restored = await StoreKitManager.shared.restorePurchases()
         isPurchasing = false
         if restored {
             await appState.refreshPremiumStatus()
             dismiss()
+        } else {
+            purchaseError = "Bu Apple ID ile aktif abonelik bulunamadı."
         }
     }
 }

@@ -32,6 +32,14 @@ struct HomeView: View {
             }
         }
         .task { await loadNews() }
+        // Premium status değişirse (satın alma veya restore sonrası) → tüm topic'leri yükle
+        .onChange(of: appState.profile.isPremium) { _, _ in
+            Task { await loadNews() }
+        }
+        // Topic seçimi değişirse → free kullanıcı için yeni filtreleme
+        .onChange(of: appState.profile.selectedTopicIds) { _, _ in
+            Task { await loadNews() }
+        }
         .sheet(item: $selectedNews) { item in
             NewsDetailView(news: item, allNews: news)
                 .environmentObject(appState)

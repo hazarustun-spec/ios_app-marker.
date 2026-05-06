@@ -120,6 +120,10 @@ struct FeedView: View {
             }
         }
         .task { await loadNews() }
+        // Premium status değişirse re-fetch (paywall sonrası unlock)
+        .onChange(of: appState.profile.isPremium) { _, _ in
+            Task { await loadNews() }
+        }
         .sheet(item: $selectedNews) { item in
             NewsDetailView(news: item, allNews: news)
                 .environmentObject(appState)
