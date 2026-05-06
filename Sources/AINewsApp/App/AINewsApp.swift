@@ -10,16 +10,35 @@ struct AINewsApp: App {
         SentrySDK.start { options in
             options.dsn = "https://52d17a87df3e5b8ab321c3c2f807a614@o4511334895386625.ingest.de.sentry.io/4511334898335824"
             options.debug = false
-            options.tracesSampleRate = 0.2
-            options.enableAutoPerformanceTracing = true
+
+            // Performance — cold start tracking için
+            options.tracesSampleRate = 1.0           // tüm cold start'ları topla (kritik metric)
+            options.profilesSampleRate = 0.5         // %50 profiling — detaylı breakdown
+            options.enableAutoPerformanceTracing = true   // app.start.cold/.warm transactions otomatik
             options.enableUserInteractionTracing = true
+
+            // App Hang Detection — main thread donmalarını yakala (2s+ → cold start hedefini aşar)
+            options.enableAppHangTracking = true
+            options.appHangTimeoutInterval = 2.0
+
+            // Auto-track view appears + network calls
+            options.enableNetworkTracking = true
+            options.enableFileIOTracing = true
+
             #if DEBUG
             options.environment = "debug"
-            options.enabled = false   // DEBUG'da kapalı; gerçek crash'ler sadece TestFlight/App Store'dan toplanır
+            options.enabled = false
             #else
             options.environment = "production"
             #endif
         }
+
+        // Cold start breadcrumb — Sentry trace'inde görünür
+        SentrySDK.addBreadcrumb({
+            let crumb = Breadcrumb(level: .info, category: "app.lifecycle")
+            crumb.message = "AINewsApp init complete"
+            return crumb
+        }())
     }
 
     var body: some Scene {

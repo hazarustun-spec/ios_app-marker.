@@ -2,6 +2,7 @@ import SwiftUI
 import AuthenticationServices
 import CryptoKit
 import Supabase
+import Sentry
 
 @MainActor
 final class AppState: ObservableObject {
@@ -29,9 +30,15 @@ final class AppState: ObservableObject {
     }
 
     init() {
+        // Cold start tracking — span Sentry "app.start.cold" transaction'ına child olur
+        let span = SentrySDK.span?.startChild(operation: "appstate.init", description: "AppState boot")
+
         isOnboardingComplete = UserDefaults.standard.bool(forKey: "onboardingComplete")
         loadCachedProfile()
         loadCachedSavedIds()
+
+        span?.finish()  // sync init bitti — sonraki async iş cold start metric'inden hariç
+
         Task {
             await restoreSession()
             await notifications.checkAuthorization()
