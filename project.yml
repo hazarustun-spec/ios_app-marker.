@@ -14,6 +14,8 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     INFOPLIST_FILE: Sources/AINewsApp/App/Info.plist
     CODE_SIGN_STYLE: Automatic
+    # Tüm config'lerde dSYM üret — App Store Connect Sentry framework dSYM uyarısını engeller
+    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
 targets:
   AINewsAppTests:
