@@ -284,7 +284,13 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  // "today" İstanbul timezone'a göre hesaplanır.
+  // Bu, cron'un UTC 21:00'de (İstanbul 00:00) başlayıp ertesi günü doldurmasını sağlar.
+  // GitHub Actions cron delay'leri için peak-time öncesi başlayabiliyoruz.
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric", month: "2-digit", day: "2-digit"
+  }).format(new Date());  // YYYY-MM-DD format (Canadian locale = ISO)
 
   let body: { topic_id?: string; force?: boolean } = {};
   try { body = await req.json(); } catch { /* boş body */ }
