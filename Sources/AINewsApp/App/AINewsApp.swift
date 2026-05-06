@@ -12,10 +12,15 @@ struct AINewsApp: App {
             options.debug = false
 
             // Performance — cold start tracking için
-            options.tracesSampleRate = 1.0           // tüm cold start'ları topla (kritik metric)
-            options.profilesSampleRate = 0.5         // %50 profiling — detaylı breakdown
+            options.tracesSampleRate = 1.0   // tüm cold start'ları topla (kritik metric)
             options.enableAutoPerformanceTracing = true   // app.start.cold/.warm transactions otomatik
             options.enableUserInteractionTracing = true
+
+            // Profiling — Sentry SDK 8.50+ yeni API (sessionSampleRate)
+            options.configureProfiling = { profiling in
+                profiling.sessionSampleRate = 0.5  // %50 detaylı profiling
+                profiling.lifecycle = .trace
+            }
 
             // App Hang Detection — main thread donmalarını yakala (2s+ → cold start hedefini aşar)
             options.enableAppHangTracking = true
